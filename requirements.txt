@@ -1,0 +1,4 @@
+numpy
+RPi.GPIO
+smbus2
+# If using Flask for the web interface
