@@ -1,8 +1,5 @@
 import time
-#from utils.pin import Pin
-# In ultrasonic.py
-from ..utils.pin import Pin  # ".." to go one level up to the parent directory
-
+from .utils.pin import Pin
 
 class UltrasonicSensor:
     def __init__(self, trigger_pin, echo_pin):
