@@ -1,4 +1,12 @@
 import time
+import sys
+import os
+
+# Add the parent directory of robot_code to sys.path
+script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
+parent_dir = os.path.join(script_dir, '..', '..')  # Navigate two levels up
+sys.path.append(os.path.abspath(parent_dir))
+
 from robot_code.utils.pin import Pin
 
 
