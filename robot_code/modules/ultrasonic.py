@@ -19,9 +19,9 @@ class UltrasonicSensor:
     def measure_distance(self):
         # Send a pulse to trigger the ultrasonic sensor
         self.trigger_pin.low()
-        time.sleep_us(2)
+        time.sleep(0.000002)  # 2 microseconds
         self.trigger_pin.high()
-        time.sleep_us(10)
+        time.sleep(0.00001)  # 10 microseconds
         self.trigger_pin.low()
 
         # Measure the duration of the pulse from the echo pin
