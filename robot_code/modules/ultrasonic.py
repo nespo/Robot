@@ -1,5 +1,6 @@
 import time
-from .utils.pin import Pin
+from robot_code.utils.pin import Pin
+
 
 class UltrasonicSensor:
     def __init__(self, trigger_pin, echo_pin):
