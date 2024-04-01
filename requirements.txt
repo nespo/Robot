@@ -2,4 +2,5 @@ numpy
 RPi.GPIO
 smbus2
 pynput
+keyboard
 # If using Flask for the web interface
