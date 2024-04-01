@@ -68,6 +68,8 @@ class UltrasonicServoSensor:
                             print(f"Error at angle: {angle}")
                         time.sleep(0.4)  # Adjust for servo movement and scanning pace
 
+# At the end of ultrasonic.py
 if __name__ == "__main__":
-    sensor = UltrasonicServoSensor("D2", "D3", "P0")
-    Thread(target=sensor.continuous_scan_and_send).start()
+    ultrasonic_sensor = UltrasonicServoSensor("D2", "D3", "P0")
+    Thread(target=ultrasonic_sensor.continuous_scan_and_send).start()
+
