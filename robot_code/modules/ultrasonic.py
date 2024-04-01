@@ -2,6 +2,7 @@ import time
 import threading
 import sys
 import os
+import json  # For saving the data in a readable format
 
 # Adjust the sys.path to include the parent directory of robot_code
 script_dir = os.path.dirname(__file__)
@@ -30,35 +31,34 @@ class UltrasonicServoSensor:
         while self.echo_pin.value() == 0:
             pulse_start = time.time()
             if pulse_start - start_time > self.timeout:
-                return -1
+                return -1  # Timeout
         while self.echo_pin.value() == 1:
             pulse_end = time.time()
             if pulse_end - start_time > self.timeout:
-                return -2
+                return -2  # Timeout
 
         duration = pulse_end - pulse_start
-        distance = (duration * 34300) / 2
+        distance = (duration * 34300) / 2  # Calculate distance
         return round(distance, 2)
 
-    def scan_180_async(self, callback, test_duration=120):
+    def scan_270_async(self, callback):
         def scan():
-            end_time = time.time() + test_duration
-            while time.time() < end_time:
-                results = []
-                for angle in range(-90, 91, 5):  # Efficient and quick scans
-                    self.servo.set_angle(angle)
-                    # Assume immediate servo response; no sleep here
-                    if angle % 15 == 0:  # Measure every 15 degrees to reduce delay
-                        distance = self.get_distance()
-                        results.append((angle, distance))
-                        print(f"Angle: {angle}, Distance: {distance} cm")
-                        time.sleep(0.05)  # Minimal sleep to allow for echo detection
-                callback(results)
-                # Continuously loop for 2-minute duration
+            results = []
+            for angle in range(-135, 136, 10):  # 270-degree scan, every 10 degrees
+                self.servo.set_angle(angle)
+                time.sleep(0.5)  # Slower movement for accuracy
+                distance = self.get_distance()
+                results.append((angle, distance))
+                print(f"Angle: {angle}, Distance: {distance} cm")
+            results.sort(key=lambda x: x[0])  # Sort results by angle
+            callback(results)
 
         threading.Thread(target=scan).start()
 
 def print_scan_results(results):
+    # Saving the results to a file
+    with open('scan_results.json', 'w') as f:
+        json.dump(results, f, indent=4)
     for angle, distance in results:
         print(f"Angle: {angle}°, Distance: {distance} cm")
 
@@ -68,7 +68,7 @@ def test_ultrasonic_servo_sensor():
     SERVO_CHANNEL = "P0"
 
     sensor = UltrasonicServoSensor(TRIGGER_PIN, ECHO_PIN, SERVO_CHANNEL)
-    sensor.scan_180_async(print_scan_results, test_duration=120)
+    sensor.scan_270_async(print_scan_results)
 
 if __name__ == "__main__":
     test_ultrasonic_servo_sensor()
