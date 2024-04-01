@@ -1,17 +1,20 @@
 import time
-import threading
-import sys
-import os
-import json
+import socket
+import os, sys
+from threading import Thread
 
 # Adjust the sys.path to include the parent directory of robot_code
 script_dir = os.path.dirname(__file__)
 parent_dir = os.path.join(script_dir, '..', '..')
 sys.path.append(os.path.abspath(parent_dir))
 
+# Assuming these modules are correctly set up in your environment
 from robot_code.utils.pin import Pin
 from robot_code.utils.pwm import PWM
 from servo import Servo
+
+HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 
 class UltrasonicServoSensor:
     def __init__(self, trigger_pin, echo_pin, servo_channel, timeout=0.01, servo_offset=0):
@@ -22,57 +25,49 @@ class UltrasonicServoSensor:
 
     def get_distance(self):
         self.trigger_pin.low()
-        time.sleep(0.002)  # Shortened sleep to ensure a clean pulse
+        time.sleep(0.002)
         self.trigger_pin.high()
         time.sleep(0.00001)
         self.trigger_pin.low()
 
         start_time = time.time()
+        pulse_start, pulse_end = 0, 0
         while self.echo_pin.value() == 0:
             pulse_start = time.time()
             if pulse_start - start_time > self.timeout:
                 return -1  # Timeout
         while self.echo_pin.value() == 1:
             pulse_end = time.time()
-            if pulse_end - start_time > self.timeout:
+            if pulse_end - pulse_start > self.timeout:
                 return -2  # Timeout
 
-        duration = pulse_end - pulse_start
-        distance = (duration * 34300) / 2  # Calculate distance
-        return round(distance, 2)
+        if pulse_end and pulse_start:
+            duration = pulse_end - pulse_start
+            distance = (duration * 34300) / 2  # Calculate distance
+            return round(distance, 2)
+        else:
+            return -3  # Failed to capture duration
 
-    def scan_270_async(self, callback):
-        def scan():
-            results = []
-            # Implement a smoother transition from left to right
-            for angle in range(-135, 136, 10):  # Adjusted for smoother scanning
-                self.servo.set_angle(angle)
-                time.sleep(0.2)  # Adjust sleep for faster movement
-                distance = self.get_distance()
-                results.append((angle, distance))
-                print(f"Angle: {angle}, Distance: {distance} cm")
-            
-            # Sort results by angle just in case
-            results.sort(key=lambda x: x[0])
-            callback(results)
-
-        # Start the scan in a new thread
-        threading.Thread(target=scan).start()
-
-def print_scan_results(results):
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = f'scan_results_{timestamp}.json'
-    with open(filename, 'w') as f:
-        json.dump(results, f, indent=4)
-    print(f"Results saved to {filename}")
-
-def test_ultrasonic_servo_sensor():
-    TRIGGER_PIN = "D2"
-    ECHO_PIN = "D3"
-    SERVO_CHANNEL = "P0"
-
-    sensor = UltrasonicServoSensor(TRIGGER_PIN, ECHO_PIN, SERVO_CHANNEL)
-    sensor.scan_270_async(print_scan_results)
+    def continuous_scan_and_send(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST, PORT))
+            s.listen()
+            print('Ultrasonic sensor server listening...')
+            conn, addr = s.accept()
+            with conn:
+                print('Connected by', addr)
+                while True:
+                    for angle in range(-90, 91, 10):  # Adjusted range for front detection
+                        self.servo.set_angle(angle)
+                        distance = self.get_distance()
+                        if distance >= 0:  # Valid distance
+                            data = f"{angle},{distance}\n".encode()
+                            conn.sendall(data)
+                            print(f"Angle: {angle}, Distance: {distance} cm")
+                        else:
+                            print(f"Error at angle: {angle}")
+                        time.sleep(0.4)  # Adjust for servo movement and scanning pace
 
 if __name__ == "__main__":
-    test_ultrasonic_servo_sensor()
+    sensor = UltrasonicServoSensor("D2", "D3", "P0")
+    Thread(target=sensor.continuous_scan_and_send).start()
