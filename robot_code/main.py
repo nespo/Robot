@@ -1,20 +1,22 @@
-from modules.motor import Motor
-from modules.photo_interrupter import PhotoInterrupter
-from modules.grayscale import GrayscaleSensor
-from modules.ultrasonic import UltrasonicSensor
+import subprocess
+import threading
 
-def main():
-    motor = Motor()
-    photo_interrupter = PhotoInterrupter()
-    grayscale_sensor = GrayscaleSensor()
-    ultrasonic_sensor = UltrasonicSensor()
-    
-    try:
-        # Your robot's main operational code goes here.
-        pass
-    except KeyboardInterrupt:
-        # Clean-up code goes here, if necessary.
-        pass
+def start_ultrasonic():
+    # Ensure the path is correctly specified relative to main.py's location
+    subprocess.run(["python", "./modules/ultrasonic.py"], check=True)
+
+def start_motor_control():
+    # Ensure the path is correctly specified relative to main.py's location
+    subprocess.run(["python", "./modules/motor.py"], check=True)
 
 if __name__ == "__main__":
-    main()
+    # Use threading to start both processes simultaneously
+    ultrasonic_thread = threading.Thread(target=start_ultrasonic)
+    motor_thread = threading.Thread(target=start_motor_control)
+
+    ultrasonic_thread.start()
+    motor_thread.start()
+
+    # Wait for both threads to complete
+    ultrasonic_thread.join()
+    motor_thread.join()
