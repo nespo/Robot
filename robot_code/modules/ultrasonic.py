@@ -3,9 +3,9 @@ import threading
 import sys
 import os
 
-# Add the parent directory of robot_code to sys.path
-script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
-parent_dir = os.path.join(script_dir, '..', '..')  # Navigate two levels up
+# Adjust the sys.path to include the parent directory of robot_code
+script_dir = os.path.dirname(__file__)
+parent_dir = os.path.join(script_dir, '..', '..')
 sys.path.append(os.path.abspath(parent_dir))
 
 from robot_code.utils.pin import Pin
@@ -40,19 +40,22 @@ class UltrasonicServoSensor:
         distance = (duration * 34300) / 2
         return round(distance, 2)
 
-    def scan_180_async(self, callback):
+    def scan_180_async(self, callback, test_duration=120):
         def scan():
-            results = []
-            for angle in range(-90, 91, 5):  # More granular step size
-                self.servo.set_angle(angle)
-                # Reduced sleep - Assumes servo can move quickly enough
-                time.sleep(0.1)
-                distance = self.get_distance()
-                results.append((angle, distance))
-                print(f"Angle: {angle}, Distance: {distance} cm")
-            callback(results)
+            end_time = time.time() + test_duration
+            while time.time() < end_time:
+                results = []
+                for angle in range(-90, 91, 5):  # Efficient and quick scans
+                    self.servo.set_angle(angle)
+                    # Assume immediate servo response; no sleep here
+                    if angle % 15 == 0:  # Measure every 15 degrees to reduce delay
+                        distance = self.get_distance()
+                        results.append((angle, distance))
+                        print(f"Angle: {angle}, Distance: {distance} cm")
+                        time.sleep(0.05)  # Minimal sleep to allow for echo detection
+                callback(results)
+                # Continuously loop for 2-minute duration
 
-        # Run the scan in a separate thread to avoid blocking
         threading.Thread(target=scan).start()
 
 def print_scan_results(results):
@@ -65,7 +68,7 @@ def test_ultrasonic_servo_sensor():
     SERVO_CHANNEL = "P0"
 
     sensor = UltrasonicServoSensor(TRIGGER_PIN, ECHO_PIN, SERVO_CHANNEL)
-    sensor.scan_180_async(print_scan_results)
+    sensor.scan_180_async(print_scan_results, test_duration=120)
 
 if __name__ == "__main__":
     test_ultrasonic_servo_sensor()
