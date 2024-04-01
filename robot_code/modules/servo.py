@@ -1,4 +1,4 @@
-from configs.use import mapping
+from robot_code.configs.use import mapping
 
 class Servo():
     PERIOD = 4095
