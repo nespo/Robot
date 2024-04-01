@@ -2,7 +2,7 @@ import time
 import threading
 import sys
 import os
-import json  # For saving the data in a readable format
+import json
 
 # Adjust the sys.path to include the parent directory of robot_code
 script_dir = os.path.dirname(__file__)
@@ -44,23 +44,27 @@ class UltrasonicServoSensor:
     def scan_270_async(self, callback):
         def scan():
             results = []
-            for angle in range(-135, 136, 10):  # 270-degree scan, every 10 degrees
+            # Implement a smoother transition from left to right
+            for angle in range(-135, 136, 10):  # Adjusted for smoother scanning
                 self.servo.set_angle(angle)
-                time.sleep(0.5)  # Slower movement for accuracy
+                time.sleep(0.2)  # Adjust sleep for faster movement
                 distance = self.get_distance()
                 results.append((angle, distance))
                 print(f"Angle: {angle}, Distance: {distance} cm")
-            results.sort(key=lambda x: x[0])  # Sort results by angle
+            
+            # Sort results by angle just in case
+            results.sort(key=lambda x: x[0])
             callback(results)
 
+        # Start the scan in a new thread
         threading.Thread(target=scan).start()
 
 def print_scan_results(results):
-    # Saving the results to a file
-    with open('scan_results.json', 'w') as f:
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    filename = f'scan_results_{timestamp}.json'
+    with open(filename, 'w') as f:
         json.dump(results, f, indent=4)
-    for angle, distance in results:
-        print(f"Angle: {angle}°, Distance: {distance} cm")
+    print(f"Results saved to {filename}")
 
 def test_ultrasonic_servo_sensor():
     TRIGGER_PIN = "D2"
