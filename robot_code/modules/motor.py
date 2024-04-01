@@ -57,6 +57,8 @@ class MotorControl:
         threading.Thread(target=self.receive_data).start()
         self.manual_control_listener()
 
+# At the end of motor.py
 if __name__ == "__main__":
     motor_control = MotorControl()
     motor_control.run()
+
